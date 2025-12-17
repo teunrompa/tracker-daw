@@ -30,4 +30,8 @@ impl AudioSource for SineWave {
     fn is_finished(&self) -> bool {
         false
     }
+
+    fn release(&mut self) {
+        self.phase = 0.0;
+    }
 }
