@@ -1,21 +1,22 @@
+use std::sync::{Arc, Mutex};
+
 use cpal::{
     Device, Host, Stream, StreamConfig,
     traits::{DeviceTrait, HostTrait, StreamTrait},
 };
 
-use crate::waves::SineWave;
-
+use crate::{mixer::Mixer, waves::SineWave};
+//Sends audio to the output stream
 pub struct AudioEngine {
     host: Host,
     device: Device,
     config: StreamConfig,
-    sample_rate: f32,
+    pub sample_rate: f32,
     channels: u16,
-    global_volume: f32,
 }
 
 impl AudioEngine {
-    pub fn new(global_volume: f32) -> Result<Self, Box<dyn std::error::Error>> {
+    pub fn new() -> Result<Self, Box<dyn std::error::Error>> {
         let host = cpal::default_host();
 
         //Access output divice
@@ -36,23 +37,22 @@ impl AudioEngine {
             config,
             sample_rate,
             channels,
-            global_volume,
         })
     }
 
-    pub fn play_tone(&self, frequency: f32) -> Result<Stream, Box<dyn std::error::Error>> {
+    pub fn start_with_mixer(
+        &self,
+        mixer: Arc<Mutex<Mixer>>,
+    ) -> Result<Stream, Box<dyn std::error::Error>> {
         let config = self.config.clone();
         let device = self.device.clone();
-        let global_volume = self.global_volume;
-
-        let mut sine = SineWave::new(frequency, self.sample_rate);
 
         let stream = device.build_output_stream(
             &config,
             move |data: &mut [f32], _: &cpal::OutputCallbackInfo| {
+                let mut mixer = mixer.lock().unwrap();
                 for sample in data.iter_mut() {
-                    let value = sine.next_sample();
-                    *sample = value * global_volume;
+                    *sample = mixer.next_sample();
                 }
             },
             |err| eprintln!("Stream Err {}", err),

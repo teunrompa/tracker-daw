@@ -1,3 +1,6 @@
+use crate::audio_source::AudioSource;
+
+#[derive(Debug)]
 pub struct SineWave {
     frequency: f32,
     phase: f32,
@@ -12,13 +15,19 @@ impl SineWave {
             sample_rate,
         }
     }
+}
 
-    pub fn next_sample(&mut self) -> f32 {
+impl AudioSource for SineWave {
+    fn next_sample(&mut self) -> f32 {
         let value =
             (self.phase * self.frequency * 2.0 * std::f32::consts::PI / self.sample_rate).sin();
 
         self.phase += 1.0;
 
         value
+    }
+
+    fn is_finished(&self) -> bool {
+        false
     }
 }

@@ -1,15 +1,40 @@
 mod audio_engine;
+mod audio_source;
+mod mixer;
 mod note;
 mod waves;
 
-use crate::note::Note;
+use std::sync::{Arc, Mutex};
+
+use crate::{audio_engine::AudioEngine, mixer::Mixer, note::Note, waves::SineWave};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    println!(
-        "C0 enum={}, Midi{}, freq={:.2} hz",
-        Note::C0 as u8,
-        Note::C0.to_midi(),
-        Note::C0.to_freqency()
-    );
+    let audio_engine = AudioEngine::new()?;
+    let sample_rate = audio_engine.sample_rate;
+    let mixer_arc = Arc::new(Mutex::new(Mixer::new(0.3)));
+
+    let _stream = audio_engine.start_with_mixer(Arc::clone(&mixer_arc))?;
+
+    mixer_arc.lock().unwrap().add_source(Box::new(SineWave::new(
+        Note::B3.to_frequency(),
+        sample_rate,
+    )));
+
+    mixer_arc.lock().unwrap().add_source(Box::new(SineWave::new(
+        Note::A3.to_frequency(),
+        sample_rate,
+    )));
+    mixer_arc.lock().unwrap().add_source(Box::new(SineWave::new(
+        Note::E3.to_frequency(),
+        sample_rate,
+    )));
+
+    mixer_arc.lock().unwrap().add_source(Box::new(SineWave::new(
+        Note::F3.to_frequency(),
+        sample_rate,
+    )));
+
+    std::thread::sleep(std::time::Duration::from_secs(2));
+
     Ok(())
 }

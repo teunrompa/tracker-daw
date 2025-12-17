@@ -123,7 +123,7 @@ impl Note {
         (*self as u8) + 12
     }
 
-    pub fn to_freqency(&self) -> f32 {
+    pub fn to_frequency(&self) -> f32 {
         let midi_note = self.to_midi();
 
         444.0 * 2.0_f32.powf((midi_note as f32 - 69.0) / 12.0)
