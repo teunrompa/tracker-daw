@@ -1,4 +1,50 @@
+use crate::duration::Duration;
+
 use crate::audio_source::AudioSource;
+
+pub struct EnvelopeBuilder {
+    attack: Duration,
+    decay: Duration,
+    sustain_level: f32,
+    release: Duration,
+}
+
+impl EnvelopeBuilder {
+    pub fn new() -> Self {
+        EnvelopeBuilder {
+            attack: Duration::Seconds(0.0),
+            decay: Duration::Seconds(0.0),
+            sustain_level: 0.0,
+            release: Duration::Seconds(0.0),
+        }
+    }
+
+    pub fn attack(mut self, d: Duration) -> Self {
+        self.attack = d;
+        self
+    }
+    pub fn decay(mut self, d: Duration) -> Self {
+        self.decay = d;
+        self
+    }
+    pub fn sustain_level(mut self, level: f32) -> Self {
+        self.sustain_level = level;
+        self
+    }
+    pub fn release(mut self, d: Duration) -> Self {
+        self.release = d;
+        self
+    }
+
+    pub fn build(&self, sample_rate: f32) -> Envelope {
+        Envelope::new(
+            self.attack.to_samples(sample_rate),
+            self.decay.to_samples(sample_rate),
+            self.sustain_level,
+            self.release.to_samples(sample_rate),
+        )
+    }
+}
 
 #[derive(PartialEq, Debug)]
 pub enum EnvelopePhase {
@@ -17,6 +63,7 @@ pub struct Envelope {
     release_samples: u32,
     current_phase: EnvelopePhase,
     samples_in_phase: u32,
+    max_sustain_samples: Option<u32>,
 }
 
 impl Envelope {
@@ -33,6 +80,7 @@ impl Envelope {
             release_samples,
             current_phase: EnvelopePhase::Attack,
             samples_in_phase: 0,
+            max_sustain_samples: None,
         }
     }
 
@@ -43,7 +91,16 @@ impl Envelope {
                 let progress = self.samples_in_phase as f32 / self.decay_samples as f32;
                 1.0 - (progress * (1.0 - self.sustain_level))
             }
-            EnvelopePhase::Sustain => self.sustain_level,
+            EnvelopePhase::Sustain => {
+                if let Some(max_sustain) = self.max_sustain_samples
+                    && self.samples_in_phase >= max_sustain
+                {
+                    self.current_phase = EnvelopePhase::Release;
+                    self.samples_in_phase = 0;
+                }
+
+                self.sustain_level
+            }
             EnvelopePhase::Release => {
                 let progress = self.samples_in_phase as f32 / self.release_samples as f32;
                 self.sustain_level * (1.0 - progress)
@@ -78,9 +135,13 @@ impl Envelope {
         amplitude
     }
 
-    fn release(&mut self) {
+    pub fn release(&mut self) {
         self.current_phase = EnvelopePhase::Release;
         self.samples_in_phase = 0;
+    }
+
+    pub fn set_max_sustain(&mut self, samples: u32) {
+        self.max_sustain_samples = Some(samples);
     }
 
     fn is_finished(&self) -> bool {

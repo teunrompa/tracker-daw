@@ -1,4 +1,10 @@
-use crate::{audio_source::AudioSource, waves::SineWave};
+use crate::{
+    audio_source::AudioSource,
+    duration::Duration,
+    envelope::{Envelope, EnvelopeBuilder, EnvelopeSource},
+    note::Note,
+    waves::SineWave,
+};
 
 pub struct Mixer {
     sources: Vec<Box<dyn AudioSource>>,
@@ -13,6 +19,26 @@ impl Mixer {
             volume,
             sample_rate,
         }
+    }
+
+    pub fn play_note(
+        &mut self,
+        note: Note,
+        duration: Duration,
+        envelope: &EnvelopeBuilder,
+    ) -> usize {
+        let mut env = envelope.build(self.sample_rate);
+
+        env.set_max_sustain(duration.to_samples(self.sample_rate));
+
+        let enveloped_source = EnvelopeSource::new(
+            Box::new(SineWave::new(note.to_frequency(), self.sample_rate)),
+            env,
+        );
+
+        let id = self.sources.len();
+        self.sources.push(Box::new(enveloped_source));
+        id
     }
 
     pub fn add_source(&mut self, source: Box<dyn AudioSource>) {
