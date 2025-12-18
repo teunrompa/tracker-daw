@@ -9,13 +9,8 @@ mod waves;
 use std::sync::{Arc, Mutex};
 
 use crate::{
-    audio_engine::AudioEngine,
-    audio_source::AudioSource,
-    duration::Duration,
-    envelope::{Envelope, EnvelopeBuilder, EnvelopeSource},
-    mixer::Mixer,
+    audio_engine::AudioEngine, duration::Duration, envelope::EnvelopeBuilder, mixer::Mixer,
     note::Note,
-    waves::SineWave,
 };
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {

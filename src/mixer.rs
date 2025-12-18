@@ -1,13 +1,20 @@
 use crate::{
     audio_source::AudioSource,
     duration::Duration,
-    envelope::{Envelope, EnvelopeBuilder, EnvelopeSource},
+    envelope::{EnvelopeBuilder, EnvelopeSource},
     note::Note,
     waves::SineWave,
 };
 
+enum VoiceStealingStrategy {
+    Oldest,
+    Quietest,
+    RejectNew,
+}
+
 pub struct Mixer {
     sources: Vec<Box<dyn AudioSource>>,
+    max_voices: Option<usize>,
     volume: f32,
     sample_rate: f32,
 }
@@ -16,6 +23,7 @@ impl Mixer {
     pub fn new(volume: f32, sample_rate: f32) -> Self {
         Self {
             sources: Vec::new(),
+            max_voices: None,
             volume,
             sample_rate,
         }
@@ -37,16 +45,31 @@ impl Mixer {
         );
 
         let id = self.sources.len();
-        self.sources.push(Box::new(enveloped_source));
+        self.add_source(Box::new(enveloped_source));
         id
     }
 
     pub fn add_source(&mut self, source: Box<dyn AudioSource>) {
+        self.check_max_sources();
+
+        //Add new source
         self.sources.push(source);
     }
 
     pub fn add_sources(&mut self, sources: Vec<Box<dyn AudioSource>>) {
-        self.sources.extend(sources);
+        for source in sources {
+            self.check_max_sources();
+            self.sources.push(source);
+        }
+    }
+
+    //Remove oldest voice if max voice is reached
+    fn check_max_sources(&mut self) {
+        if let Some(max) = self.max_voices
+            && self.sources.len() >= max
+        {
+            self.sources.remove(0);
+        }
     }
 
     pub fn next_sample(&mut self) -> f32 {
