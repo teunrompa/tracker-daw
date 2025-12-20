@@ -9,7 +9,10 @@ mod waves;
 use std::sync::{Arc, Mutex};
 
 use crate::{
-    audio_engine::AudioEngine, duration::Duration, envelope::EnvelopeBuilder, mixer::Mixer,
+    audio_engine::AudioEngine,
+    duration::Duration,
+    envelope::{EnvelopeBuilder, EnvelopeSource},
+    mixer::Mixer,
     note::Note,
 };
 
@@ -20,17 +23,18 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let envelope = EnvelopeBuilder::new()
         .attack(Duration::Seconds(3.05))
-        .decay(Duration::Seconds(4.0))
-        .sustain_level(0.3)
-        .release(Duration::Seconds(5.0));
+        .decay(Duration::Seconds(0.1))
+        .sustain_level(0.7)
+        .release(Duration::Seconds(3.0));
 
-    mixer_arc
-        .lock()
-        .unwrap()
-        .play_note(Note::C3, Duration::Seconds(1.0), &envelope);
+    {
+        let mut mixer = mixer_arc.lock().unwrap();
+        mixer
+            .source_manager
+            .play_note(Note::E3, Duration::Seconds(2.0), &envelope);
+    }
 
     let _stream = audio_engine.start_with_mixer(Arc::clone(&mixer_arc))?;
-
-    std::thread::sleep(std::time::Duration::from_secs(10));
+    std::thread::sleep(std::time::Duration::from_secs(5));
     Ok(())
 }
