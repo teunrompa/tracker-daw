@@ -1,7 +1,7 @@
 use crate::duration::Duration;
 
-use crate::audio_source::AudioSource;
-
+use crate::audio_source::PlayableSource;
+#[derive(Clone, Debug)]
 pub struct EnvelopeBuilder {
     attack: Duration,
     decay: Duration,
@@ -127,11 +127,6 @@ impl Envelope {
             self.samples_in_phase = 0;
         }
 
-        println!(
-            "Current amplitude {}, Current Phase {:#?}",
-            amplitude, self.current_phase
-        );
-
         amplitude
     }
 
@@ -151,17 +146,17 @@ impl Envelope {
 
 #[derive(Debug)]
 pub struct EnvelopeSource {
-    source: Box<dyn AudioSource>,
+    source: Box<dyn PlayableSource>,
     envelope: Envelope,
 }
 
 impl EnvelopeSource {
-    pub fn new(source: Box<dyn AudioSource>, envelope: Envelope) -> Self {
+    pub fn new(source: Box<dyn PlayableSource>, envelope: Envelope) -> Self {
         EnvelopeSource { source, envelope }
     }
 }
 
-impl AudioSource for EnvelopeSource {
+impl PlayableSource for EnvelopeSource {
     fn next_sample(&mut self) -> f32 {
         self.source.next_sample() * self.envelope.next_amplitude()
     }

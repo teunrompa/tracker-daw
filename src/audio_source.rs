@@ -3,45 +3,28 @@ use std::fmt::Debug;
 use crate::{
     duration::Duration,
     envelope::{EnvelopeBuilder, EnvelopeSource},
-    note::Note,
-    waves::SineWave,
 };
 
-pub trait AudioSource: Send + Debug {
+pub trait PlayableSource: Send + Debug {
     fn next_sample(&mut self) -> f32;
     fn is_finished(&self) -> bool;
     fn release(&mut self);
 }
 
 pub struct AudioSourceManager {
-    pub sources: Vec<Box<dyn AudioSource>>,
+    pub sources: Vec<Box<dyn PlayableSource>>,
     max_sources: Option<usize>,
-    sample_rate: f32,
 }
 
 impl AudioSourceManager {
-    pub fn new(max_sources: Option<usize>, sample_rate: f32) -> Self {
+    pub fn new(max_sources: Option<usize>) -> Self {
         AudioSourceManager {
             sources: Vec::new(),
             max_sources,
-            sample_rate,
         }
     }
 
-    pub fn play_note(&mut self, note: Note, duration: Duration, envelope: &EnvelopeBuilder) {
-        let mut env = envelope.build(self.sample_rate);
-
-        env.set_max_sustain(duration.to_samples(self.sample_rate));
-
-        let enveloped_source = EnvelopeSource::new(
-            Box::new(SineWave::new(note.to_frequency(), self.sample_rate)),
-            env,
-        );
-
-        self.add_source(Box::new(enveloped_source));
-    }
-
-    pub fn add_source(&mut self, source: Box<dyn AudioSource>) {
+    pub fn add_source(&mut self, source: Box<dyn PlayableSource>) {
         self.check_max_sources();
         self.sources.push(source);
     }

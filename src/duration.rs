@@ -1,3 +1,4 @@
+#[derive(Clone, Debug)]
 pub enum Duration {
     Samples(u32),
     Seconds(f32),

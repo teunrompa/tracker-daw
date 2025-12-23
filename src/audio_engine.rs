@@ -5,7 +5,7 @@ use cpal::{
     traits::{DeviceTrait, HostTrait, StreamTrait},
 };
 
-use crate::{mixer::Mixer, waves::SineWave};
+use crate::mixer::Mixer;
 //Sends audio to the output stream
 pub struct AudioEngine {
     host: Host,
